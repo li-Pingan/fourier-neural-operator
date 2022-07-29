@@ -144,11 +144,11 @@ class FNO2d(nn.Module):
 ################################################################
 # configs
 ################################################################
-TRAIN_PATH = 'data/piececonst_r421_N1024_smooth1.mat'
-TEST_PATH = 'data/piececonst_r421_N1024_smooth2.mat'
+TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
+TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
 
-ntrain = 1000
-ntest = 100
+ntrain = 3000
+ntest = 1000
 
 batch_size = 20
 learning_rate = 0.001
@@ -160,20 +160,32 @@ gamma = 0.5
 modes = 12
 width = 32
 
-r = 5
-h = int(((421 - 1)/r) + 1)
-s = h
+# r = 5
+r = 8
+# s = h
+s1 = 768//r
+s2 = 288//r
 
 ################################################################
 # load data and data normalization
 ################################################################
+idx = torch.randperm(ntrain + ntest)
+training_idx = idx[:ntrain]
+testing_idx = idx[-ntest:]
 reader = MatReader(TRAIN_PATH)
-x_train = reader.read_field('coeff')[:ntrain,::r,::r][:,:s,:s]
-y_train = reader.read_field('sol')[:ntrain,::r,::r][:,:s,:s]
+# coeff = coefficient, sol = solution (I think)
+# x_train = reader.read_field('coeff')[:ntrain,::r,::r][:,:s,:s]
+# y_train = reader.read_field('sol')[:ntrain,::r,::r][:,:s,:s]
+x_train = reader.read_field('P_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
+y_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
+print("x_train.shape:", x_train.shape)
+print("y_train.shape:", y_train.shape)
 
 reader.load_file(TEST_PATH)
-x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
-y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
+# x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
+# y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
+x_test = reader.read_field('P_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
+y_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
 
 x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
@@ -182,8 +194,10 @@ x_test = x_normalizer.encode(x_test)
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
 
-x_train = x_train.reshape(ntrain,s,s,1)
-x_test = x_test.reshape(ntest,s,s,1)
+# x_train = x_train.reshape(ntrain,s,s,1)
+# x_test = x_test.reshape(ntest,s,s,1)
+x_train = x_train.reshape(ntrain,s1,s2,1)
+x_test = x_test.reshape(ntest,s1,s2,1)
 
 train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
@@ -207,7 +221,8 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s, s)
+        # out = model(x).reshape(batch_size, s, s)
+        out = model(x).reshape(batch_size, s1, s2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
@@ -225,7 +240,8 @@ for ep in range(epochs):
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
 
-            out = model(x).reshape(batch_size, s, s)
+            # out = model(x).reshape(batch_size, s, s)
+            out = model(x).reshape(batch_size, s1, s2)
             out = y_normalizer.decode(out)
 
             test_l2 += myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
@@ -235,3 +251,4 @@ for ep in range(epochs):
 
     t2 = default_timer()
     print(ep, t2-t1, train_l2, test_l2)
+torch.save(model, "/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes_3x4_patch")

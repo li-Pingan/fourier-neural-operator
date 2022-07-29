@@ -35,7 +35,7 @@ class MatReader(object):
             self.data = scipy.io.loadmat(self.file_path)
             self.old_mat = True
         except:
-            self.data = h5py.File(self.file_path)
+            self.data = h5py.File(self.file_path, mode='r')
             self.old_mat = False
 
     def load_file(self, file_path):

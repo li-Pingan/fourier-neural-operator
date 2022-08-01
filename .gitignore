@@ -1,0 +1,6 @@
+*.sh
+
+outputs/
+data/
+wandb/
+__pycache__/

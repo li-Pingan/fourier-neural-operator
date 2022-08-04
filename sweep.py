@@ -476,19 +476,10 @@ for ep in range(epochs):
 ################################################################
 # making the plots
 ################################################################
-# mat = scipy.io.loadmat('/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes_preds_wandb.mat')
-mat = scipy.io.loadmat(output_path)
+dat = scipy.io.loadmat(output_path)
 
 # Fixing the shape of mat
-x = np.zeros(mat['y'].shape)
-for i in range(len(x)):
-    for j in range(len(x[0])):
-        for k in range(len(x[0][0])):
-            x[i][j][k] = float(mat['x'][i][j][k])
-dat = {}
-dat['x'] = x
-dat['y'] = mat['y']
-dat['pred'] = mat['pred']
+dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
 
 # Plots
 for index in [0, 5, 10, 19]:

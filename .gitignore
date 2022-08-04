@@ -1,4 +1,5 @@
 *.sh
+slurm-*.out
 
 outputs/
 data/

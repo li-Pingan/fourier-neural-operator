@@ -137,7 +137,7 @@ class FNO2d(nn.Module):
         return x
     
     def get_grid(self, shape, device):
-        batchsize, size_x, size_y = shape[0], shape[1], shape[2]
+        batchsize, size_x, size_y = shape[0], shape[2], shape[3]
         gridx = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
         gridx = gridx.reshape(1, size_x, 1, 1).repeat([batchsize, 1, size_y, 1])
         gridy = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
@@ -161,7 +161,7 @@ elif path_name == 'planes_channel180_minchan':
 batch_size = 20
 learning_rate = 0.1
 
-epochs = 500
+epochs = 100
 step_size = 100
 gamma = 0.5
 
@@ -286,7 +286,9 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s1, s2)
+        out = model(x)
+        print("out.shape:", out.shape)
+        out = model(x).reshape(batch_size, 2, s1, s2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
@@ -310,7 +312,7 @@ for ep in range(epochs):
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
 
-            out = model(x).reshape(batch_size, s1, s2)
+            out = model(x).reshape(batch_size, 2, s1, s2)
             out = y_normalizer.decode(out)
 
             test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()

@@ -137,7 +137,7 @@ class FNO2d(nn.Module):
         return x
     
     def get_grid(self, shape, device):
-        batchsize, size_x, size_y = shape[0], shape[2], shape[3]
+        batchsize, size_x, size_y = shape[0], shape[1], shape[2]
         gridx = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
         gridx = gridx.reshape(1, size_x, 1, 1).repeat([batchsize, 1, size_y, 1])
         gridy = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
@@ -151,15 +151,15 @@ TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/pl
 TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
 path_name = TRAIN_PATH[64:-4]
 
-if path_name == 'planes':
-    ntrain = 3000
-    ntest = 1000
-elif path_name == 'planes_channel180_minchan': 
-    ntrain = 7500
-    ntest = 2500
-
 batch_size = 20
 learning_rate = 0.1
+
+if path_name == 'planes':
+    ntrain = 3000 - batch_size + 1
+    ntest = 1000 - batch_size + 1
+elif path_name == 'planes_channel180_minchan': 
+    ntrain = 7500 - batch_size + 1
+    ntest = 2500 - batch_size + 1
 
 epochs = 100
 step_size = 100
@@ -224,7 +224,7 @@ x2_train = x2_train[:-batch_size]
 
 # x_train = torch.stack((x_train, x2_train))
 # x_train = torch.cat((x_train, x2_train))
-x_train = torch.stack([x_train, x2_train]).permute(1,0,2,3)
+x_train = torch.stack([x_train, x2_train]).permute(1,2,3,0)
 
 print("x_train.shape:", x_train.shape)
 
@@ -238,13 +238,13 @@ print("s2:", s2)
 print("x_test.shape:", x_test.shape)
 print("x2_test.shape:", x2_test.shape)
 
-x_test = x_test[batch_size:]
-y_test = y_test[batch_size:]
-x2_test = x2_test[:-batch_size]
+x_test = x_test[1:]
+y_test = y_test[1:]
+x2_test = x2_test[:-1]
 
 # x_test = torch.stack((x_test, x2_test))
 # x_test = torch.cat((x_test, x2_test))
-x_test = torch.stack([x_test, x2_test]).permute(1,0,2,3)
+x_test = torch.stack([x_test, x2_test]).permute(1,2,3,0)
 
 print("x_test.shape:", x_test.shape)
 
@@ -255,8 +255,8 @@ x_test = x_normalizer.encode(x_test)
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
 
-x_train = x_train.reshape(ntrain - batch_size, 2, s1,s2,1)
-x_test = x_test.reshape(ntest - batch_size, 2, s1,s2,1)
+x_train = x_train.reshape(ntrain - batch_size, s1,s2, 2)
+x_test = x_test.reshape(ntest - batch_size, s1,s2, 2)
 
 train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)

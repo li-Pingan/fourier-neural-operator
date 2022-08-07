@@ -276,9 +276,6 @@ path_name = TRAIN_PATH[64:-4]
 if path_name == 'planes':
     ntrain = 3000
     ntest = 1000
-elif path_name == 'planes_channel180_minchan': 
-    ntrain = 7500
-    ntest = 2500
 
 batch_size = 20
 learning_rate = 0.001

@@ -5,3 +5,6 @@ outputs/
 data/
 wandb/
 __pycache__/
+
+fourier_observer_minchan.py
+fourier_observer_minchan2.py

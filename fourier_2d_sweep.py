@@ -298,6 +298,9 @@ if path_name == 'planes':
 elif path_name == 'planes_channel180_minchan': 
     ntrain = 7500
     ntest = 2500
+elif path_name == 'planes_channel180_minchan2': 
+    ntrain = 9220
+    ntest = 4620
 
 # Sweeping
 random.seed()
@@ -317,7 +320,7 @@ r = 1
 if path_name == 'planes':
     s1 = 768//r
     s2 = 288//r
-elif path_name == 'planes_channel180_minchan': 
+elif 'planes_channel180_minchan' in path_name: 
     s1 = 32//r
     s2 = 32//r
 

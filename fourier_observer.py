@@ -151,7 +151,7 @@ TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/pl
 TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
 path_name = TRAIN_PATH[64:-4]
 
-batch_size = 20
+batch_size = 10
 learning_rate = 0.1
 
 if path_name == 'planes':
@@ -160,6 +160,9 @@ if path_name == 'planes':
 elif path_name == 'planes_channel180_minchan': 
     ntrain = 7500 - batch_size + 1
     ntest = 2500 - batch_size + 1
+elif path_name == 'planes_channel180_minchan2': 
+    ntrain = 9220 - batch_size + 1
+    ntest = 4620 - batch_size + 1
 
 epochs = 100
 step_size = 100
@@ -172,7 +175,7 @@ r = 1
 if path_name == 'planes':
     s1 = 768//r
     s2 = 288//r
-elif path_name == 'planes_channel180_minchan': 
+elif 'planes_channel180_minchan' in path_name: 
     s1 = 32//r
     s2 = 32//r    
 
@@ -218,9 +221,9 @@ print("s2:", s2)
 print("x_train.shape:", x_train.shape)
 print("x2_train.shape:", x2_train.shape)
 
-x_train = x_train[batch_size:]
-y_train = y_train[batch_size:]
-x2_train = x2_train[:-batch_size]
+x_train = x_train[1:]
+y_train = y_train[1:]
+x2_train = x2_train[:-1]
 
 # x_train = torch.stack((x_train, x2_train))
 # x_train = torch.cat((x_train, x2_train))
@@ -255,8 +258,8 @@ x_test = x_normalizer.encode(x_test)
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
 
-x_train = x_train.reshape(ntrain - batch_size, s1,s2, 2)
-x_test = x_test.reshape(ntest - batch_size, s1,s2, 2)
+x_train = x_train.reshape(ntrain - 1, s1,s2, 2)
+x_test = x_test.reshape(ntest - 1, s1,s2, 2)
 
 train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
@@ -286,9 +289,7 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        out = model(x)
-        print("out.shape:", out.shape)
-        out = model(x).reshape(batch_size, 2, s1, s2)
+        out = model(x).reshape(batch_size, s1, s2, 2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
@@ -312,7 +313,7 @@ for ep in range(epochs):
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
 
-            out = model(x).reshape(batch_size, 2, s1, s2)
+            out = model(x).reshape(batch_size, s1, s2, 2)
             out = y_normalizer.decode(out)
 
             test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()

@@ -289,7 +289,7 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s1, s2, 2)
+        out = model(x).reshape(batch_size, s1, s2, 1)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
@@ -313,7 +313,7 @@ for ep in range(epochs):
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
 
-            out = model(x).reshape(batch_size, s1, s2, 2)
+            out = model(x).reshape(batch_size, s1, s2, 1)
             out = y_normalizer.decode(out)
 
             test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()

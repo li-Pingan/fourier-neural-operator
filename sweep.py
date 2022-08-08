@@ -278,18 +278,18 @@ class FNO2d(nn.Module):
 ################################################################
 
 # Sweeping code
-# sweep_config = {
-#     'method': 'random'
-#     }
-# metric = {
-#     'name': 'loss',
-#     'goal': 'minimize'   
-#     }
-# sweep_config['metric'] = metric
+sweep_config = {
+    'method': 'random'
+    }
+metric = {
+    'name': 'loss',
+    'goal': 'minimize'   
+    }
+sweep_config['metric'] = metric
 
 
-TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
-TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
+TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
+TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
 path_name = TRAIN_PATH[64:-4]
 
 if path_name == 'planes':
@@ -302,20 +302,6 @@ elif path_name == 'planes_channel180_minchan2':
     ntrain = 9220
     ntest = 4620
 
-# Sweeping
-random.seed()
-# UR = lambda a , b : a + random.random()*b
-
-batch_size = 20
-learning_rate = random.sample([0.0001, 0.001, 0.01], 1)[0]
-
-epochs = 100
-step_size = random.randrange(20, 300)
-gamma = random.randrange(0,1)
-
-modes = random.randrange(5, 25)
-width = random.randrange(10, 50)
-
 r = 1
 if path_name == 'planes':
     s1 = 768//r
@@ -324,187 +310,229 @@ elif 'planes_channel180_minchan' in path_name:
     s1 = 32//r
     s2 = 32//r
 
-# parameters_dict = {
-#     'batch_size': {
-#         'value': 20
-#     }
-#     'learning_rate': {
-#         'values': [0.0001, 0.001, 0.01, 0.1]
-#         },
-#     'epochs': {
-#         'value': 500
-#         },
-#     'step_size': {
-#           'values': [20, 50, 100, 150]
-#         },
-#     'gamma': {
-#           'values': [0.1, 0.5, 0.8]
-#         },
-#     'modes': {
-#           'values': [5, 10, 15, 20]
-#         },
-#     'width': {
-#           'values': [10, 20, 30, 40]
-#         }
-#     }
+parameters_dict = {
+    'model': {
+        'value': "FNO2d"
+        },
+    'file name': {
+        'value': path_name
+        },
+    'python file': {
+        'value': "WandB_fourier_2d.py"
+        },
+    'patches': {
+        'value': False
+        },
+    'permute': {
+        'value': True
+        },
+    'TRAIN_PATH': {
+        'value': TRAIN_PATH
+        },
+    'TEST_PATH': {
+        'value': TEST_PATH
+        },
+    'ntrain': {
+        'value': ntrain
+        },
+    'ntest': {
+        'value': ntest
+        },
+    'batch_size': {
+        'value': 20
+        },
+    'learning_rate': {
+        'distribution': 'q_log_uniform',
+        'min': 0,
+        'max': 0.1
+        },
+    'epochs': {
+        'value': 100
+        },
+    'step_size': {
+        'distribution': 'uniform',
+        'min': 10,
+        'max': 150
+        },
+    'gamma': {
+        'distribution': 'uniform',
+        'min': 0,
+        'max': 1
+        },
+    'modes': {
+        'distribution': 'uniform',
+        'min': 1,
+        'max': 30
+        },
+    'width': {
+        'distribution': 'uniform',
+        'min': 1,
+        'max': 50
+        }
+    'r': {
+        'value': r
+        },
+    's1': {
+        'value': s1
+        },
+    's2': {
+        'value': s2
+        }
+    }
 
-# sweep_config['parameters'] = parameters_dict
+sweep_config['parameters'] = parameters_dict
 
-wandb.init(
-    project="FNO Planes",
-    config={
-        "model": "FNO2d",
-        "file name": path_name,
-        'python file': 'WandB_fourier_2d.py',
-        "patches": False,
-        "permute": True,
-        "TRAIN_PATH": TRAIN_PATH,
-        "TEST_PATH": TEST_PATH,
-        "ntrain": ntrain,
-        "ntest": ntest,
-        "batch_size": batch_size,
-        "learning_rate": learning_rate,
-        "epochs": epochs,
-        "step_size": step_size,
-        "gamma": gamma,
-        "modes": modes,
-        "width": width,
-        "r": r,
-        "s1": s1,
-        "s2": s2
-        })
+pprint.pprint(sweep_config)
 
+sweep_id = wandb.sweep(sweep_config, project="FNO Planes")
 
-################################################################
-# load data and data normalization
-################################################################
-idx = torch.randperm(ntrain + ntest)
-# idx = torch.arange(ntrain + ntest)
-training_idx = idx[:ntrain]
-testing_idx = idx[-ntest:]
+def run_model(config=None):
+    with wandb.init(config=config):
+        # If called by wandb.agent, as below,
+        # this config will be set by Sweep Controller
+        config = wandb.config
 
-reader = MatReader(TRAIN_PATH)
-x_train = reader.read_field('P_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
-y_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
+        TRAIN_PATH = config.TRAIN_PATH
+        TEST_PATH = config.TEST_PATH
+        ntrain = config.ntrain
+        ntest = config.ntest
+        batch_size = config.batch_size
+        learning_rate = config.learning_rate
+        epochs = config.epochs
+        step_size = config.step_size
+        gamma = config.gamma
+        modes = config.modes
+        width = config.width
+        r = config.r
+        s1 = config.s1
+        s2 = config.s2
 
-reader.load_file(TEST_PATH)
-x_test = reader.read_field('P_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
-y_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
+        ################################################################
+        # load data and data normalization
+        ################################################################
+        idx = torch.randperm(ntrain + ntest)
+        # idx = torch.arange(ntrain + ntest)
+        training_idx = idx[:ntrain]
+        testing_idx = idx[-ntest:]
 
-x_normalizer = UnitGaussianNormalizer(x_train)
-x_train = x_normalizer.encode(x_train)
-x_test = x_normalizer.encode(x_test)
+        reader = MatReader(TRAIN_PATH)
+        x_train = reader.read_field('P_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
+        y_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
 
-y_normalizer = UnitGaussianNormalizer(y_train)
-y_train = y_normalizer.encode(y_train)
+        reader.load_file(TEST_PATH)
+        x_test = reader.read_field('P_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
+        y_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
 
-x_train = x_train.reshape(ntrain,s1,s2,1)
-x_test = x_test.reshape(ntest,s1,s2,1)
+        x_normalizer = UnitGaussianNormalizer(x_train)
+        x_train = x_normalizer.encode(x_train)
+        x_test = x_normalizer.encode(x_test)
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
-n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
+        y_normalizer = UnitGaussianNormalizer(y_train)
+        y_train = y_normalizer.encode(y_train)
 
-################################################################
-# training and evaluation
-################################################################
-model = FNO2d(modes, modes, width).cuda()
-# model = UNet().cuda()
-print(count_params(model))
+        x_train = x_train.reshape(ntrain,s1,s2,1)
+        x_test = x_test.reshape(ntest,s1,s2,1)
 
-optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+        train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
+        n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
 
-output_path = '/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/'
-output_path += path_name
-output_path += '_preds_wandb.mat'
+        ################################################################
+        # training and evaluation
+        ################################################################
+        model = FNO2d(modes, modes, width).cuda()
+        # model = UNet().cuda()
+        print(count_params(model))
 
-myloss = LpLoss(size_average=False)
-y_normalizer.cuda()
-for ep in range(epochs):
-    model.train()
-    t1 = default_timer()
-    train_l2 = 0
-    for step, (x, y) in enumerate(train_loader):
-        x, y = x.cuda(), y.cuda()
+        optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
-        optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s1, s2)
-        out = y_normalizer.decode(out)
-        y = y_normalizer.decode(y)
+        output_path = '/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/'
+        output_path += path_name
+        output_path += '_preds_wandb.mat'
 
-        loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
-        loss.backward()
+        myloss = LpLoss(size_average=False)
+        y_normalizer.cuda()
+        for ep in range(epochs):
+            model.train()
+            t1 = default_timer()
+            train_l2 = 0
+            for step, (x, y) in enumerate(train_loader):
+                x, y = x.cuda(), y.cuda()
 
-        optimizer.step()
-        train_l2 += loss.item()
-        metrics = {"train/train_loss": loss.item(), 
-                   "train/epoch": (step + 1 + (n_steps_per_epoch * ep)) / n_steps_per_epoch}
-        
-        if step + 1 < n_steps_per_epoch:
-            # 🐝 Log train metrics to wandb 
-            wandb.log(metrics)
+                optimizer.zero_grad()
+                out = model(x).reshape(batch_size, s1, s2)
+                out = y_normalizer.decode(out)
+                y = y_normalizer.decode(y)
 
-    scheduler.step()
+                loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
+                loss.backward()
 
-    model.eval()
-    test_l2 = 0.0
-    with torch.no_grad():
-        for x, y in test_loader:
-            x, y = x.cuda(), y.cuda()
+                optimizer.step()
+                train_l2 += loss.item()
+                metrics = {"train/train_loss": loss.item(), 
+                        "train/epoch": (step + 1 + (n_steps_per_epoch * ep)) / n_steps_per_epoch}
+                
+                if step + 1 < n_steps_per_epoch:
+                    # 🐝 Log train metrics to wandb 
+                    wandb.log(metrics)
 
-            out = model(x).reshape(batch_size, s1, s2)
-            out = y_normalizer.decode(out)
+            scheduler.step()
 
-            test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
-            test_l2 += test_loss
-            test_metrics = {"test/test_loss": test_loss}
-            wandb.log(test_metrics)
+            model.eval()
+            test_l2 = 0.0
+            with torch.no_grad():
+                for x, y in test_loader:
+                    x, y = x.cuda(), y.cuda()
 
-    train_l2/= ntrain
-    test_l2 /= ntest
-    avg_metrics = {"train/avg_train_loss": train_l2,
-                   "test/avg_test_loss": test_l2}
-    wandb.log(avg_metrics)
+                    out = model(x).reshape(batch_size, s1, s2)
+                    out = y_normalizer.decode(out)
 
-    t2 = default_timer()
-    print(ep, t2-t1, train_l2, test_l2)
+                    test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
+                    test_l2 += test_loss
+                    test_metrics = {"test/test_loss": test_loss}
+                    wandb.log(test_metrics)
 
-    if ep == epochs - 1:
-        # scipy.io.savemat('/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes_preds_wandb.mat', mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
-        scipy.io.savemat(output_path, mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
+            train_l2/= ntrain
+            test_l2 /= ntest
+            avg_metrics = {"train/avg_train_loss": train_l2,
+                        "test/avg_test_loss": test_l2}
+            wandb.log(avg_metrics)
 
-# torch.save(model, "/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes")
+            t2 = default_timer()
+            print(ep, t2-t1, train_l2, test_l2)
 
-################################################################
-# making the plots
-################################################################
-dat = scipy.io.loadmat(output_path)
+            if ep == epochs - 1:
+                # scipy.io.savemat('/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes_preds_wandb.mat', mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
+                scipy.io.savemat(output_path, mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
+            
+            ################################################################
+            # making the plots
+            ################################################################
+            dat = scipy.io.loadmat(output_path)
 
-# Fixing the shape of mat
-dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
+            # Fixing the shape of mat
+            dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
 
-# Plots
-for index in [0, 5, 10, 19]:
-    vmin = dat['y'][index, :, :].min()
-    vmax = dat['y'][index, :, :].max()
-    fig, axes = plt.subplots(nrows=1, ncols=4)
-    plt.subplot(1, 3, 1)
-    im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
-    plt.title('Input')
-    plt.subplot(1, 3, 2)
-    im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
-    plt.title('True Output')
-    plt.subplot(1, 3, 3)
-    im3 = plt.imshow(dat['pred'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
-    plt.title('Prediction')
-    cbar_ax = fig.add_axes([.92, 0.15, 0.04, 0.7])
-    fig.colorbar(im3, cax=cbar_ax)
+            # Plots
+            for index in [0, 5, 10, 19]:
+                vmin = dat['y'][index, :, :].min()
+                vmax = dat['y'][index, :, :].max()
+                fig, axes = plt.subplots(nrows=1, ncols=4)
+                plt.subplot(1, 3, 1)
+                im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
+                plt.title('Input')
+                plt.subplot(1, 3, 2)
+                im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
+                plt.title('True Output')
+                plt.subplot(1, 3, 3)
+                im3 = plt.imshow(dat['pred'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
+                plt.title('Prediction')
+                cbar_ax = fig.add_axes([.92, 0.15, 0.04, 0.7])
+                fig.colorbar(im3, cax=cbar_ax)
 
-    wandb.log({f"chart_{index}": plt})
+                wandb.log({f"chart_{index}": plt})
 
-# pprint.pprint(sweep_config)
-
-# sweep_id = wandb.sweep(sweep_config, project="FNO Planes")
+wandb.agent(sweep_id, run_model, count=20)
 
 wandb.finish()

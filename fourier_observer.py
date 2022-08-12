@@ -89,7 +89,7 @@ class FNO2d(nn.Module):
         self.modes2 = modes2
         self.width = width
         self.padding = 9 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(4, self.width) # input channel is 4: (a(x, y), x, y)
+        self.fc0 = nn.Linear(4, self.width) # input channel is 4: (a(x, y), x1, x2, y)
 
         self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
@@ -151,7 +151,7 @@ TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/pl
 TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
 path_name = TRAIN_PATH[64:-4]
 
-batch_size = 10
+batch_size = 20
 learning_rate = 0.1
 
 if path_name == 'planes':
@@ -216,40 +216,22 @@ x_train = reader.read_field('P_plane').permute(2,0,1)[training_idx][:,::r,::r][:
 x2_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
 y_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
 
-print("s1:", s1)
-print("s2:", s2)
-print("x_train.shape:", x_train.shape)
-print("x2_train.shape:", x2_train.shape)
-
 x_train = x_train[1:]
 y_train = y_train[1:]
 x2_train = x2_train[:-1]
 
-# x_train = torch.stack((x_train, x2_train))
-# x_train = torch.cat((x_train, x2_train))
 x_train = torch.stack([x_train, x2_train]).permute(1,2,3,0)
-
-print("x_train.shape:", x_train.shape)
 
 reader.load_file(TEST_PATH)
 x_test = reader.read_field('P_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
 x2_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
 y_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
 
-print("s1:", s1)
-print("s2:", s2)
-print("x_test.shape:", x_test.shape)
-print("x2_test.shape:", x2_test.shape)
-
 x_test = x_test[1:]
 y_test = y_test[1:]
 x2_test = x2_test[:-1]
 
-# x_test = torch.stack((x_test, x2_test))
-# x_test = torch.cat((x_test, x2_test))
 x_test = torch.stack([x_test, x2_test]).permute(1,2,3,0)
-
-print("x_test.shape:", x_test.shape)
 
 x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
@@ -276,8 +258,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamm
 
 output_path = '/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/'
 output_path += path_name
-output_path += '_observer'
-output_path += '.mat'
+output_path += '_observer.mat'
 
 myloss = LpLoss(size_average=False)
 y_normalizer.cuda()
@@ -289,7 +270,7 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s1, s2, 1)
+        out = model(x).reshape(batch_size, s1, s2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
@@ -313,7 +294,7 @@ for ep in range(epochs):
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
 
-            out = model(x).reshape(batch_size, s1, s2, 1)
+            out = model(x).reshape(batch_size, s1, s2)
             out = y_normalizer.decode(out)
 
             test_loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
@@ -339,10 +320,7 @@ for ep in range(epochs):
 ################################################################
 # making the plots
 ################################################################
-dat = scipy.io.loadmat(output_path)
-
-# Fixing the shape of mat
-dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
+mat = scipy.io.loadmat(output_path)
 
 # Plots
 for index in [0, 5, 10, 19]:
@@ -350,7 +328,7 @@ for index in [0, 5, 10, 19]:
     vmax = dat['y'][index, :, :].max()
     fig, axes = plt.subplots(nrows=1, ncols=4)
     plt.subplot(1, 3, 1)
-    im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
+    im1 = plt.imshow(dat['x'][index, :, :, 0], cmap='jet', aspect='auto')
     plt.title('Input')
     plt.subplot(1, 3, 2)
     im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)

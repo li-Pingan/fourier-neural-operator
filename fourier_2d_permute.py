@@ -426,18 +426,15 @@ for ep in range(epochs):
 ################################################################
 # making the plots
 ################################################################
-dat = scipy.io.loadmat(output_path)
-
-# Fixing the shape of mat
-dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
+mat = scipy.io.loadmat(output_path)
 
 # Plots
 for index in [0, 5, 10, 19]:
     vmin = dat['y'][index, :, :].min()
     vmax = dat['y'][index, :, :].max()
-    fig, axes = plt.subplots(nrows=1, ncols=3)
+    fig, axes = plt.subplots(nrows=1, ncols=4)
     plt.subplot(1, 3, 1)
-    im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
+    im1 = plt.imshow(dat['x'][index, :, :, 0], cmap='jet', aspect='auto')
     plt.title('Input')
     plt.subplot(1, 3, 2)
     im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)

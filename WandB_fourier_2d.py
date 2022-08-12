@@ -269,8 +269,8 @@ class FNO2d(nn.Module):
 ################################################################
 # configs
 ################################################################
-TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
-TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
+TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
+TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
 path_name = TRAIN_PATH[64:-4]
 
 if path_name == 'planes':
@@ -286,7 +286,7 @@ elif path_name == 'planes_channel180_minchan2':
 batch_size = 20
 learning_rate = 0.1
 
-epochs = 500
+epochs = 100
 step_size = 100
 gamma = 0.5
 
@@ -381,6 +381,7 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
+        print("model(x).shape:", model(x).shape)
         out = model(x).reshape(batch_size, s1, s2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
@@ -431,10 +432,7 @@ for ep in range(epochs):
 ################################################################
 # making the plots
 ################################################################
-dat = scipy.io.loadmat(output_path)
-
-# Fixing the shape of mat
-dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
+mat = scipy.io.loadmat(output_path)
 
 # Plots
 for index in [0, 5, 10, 19]:
@@ -442,7 +440,7 @@ for index in [0, 5, 10, 19]:
     vmax = dat['y'][index, :, :].max()
     fig, axes = plt.subplots(nrows=1, ncols=4)
     plt.subplot(1, 3, 1)
-    im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
+    im1 = plt.imshow(dat['x'][index, :, :, 0], cmap='jet', aspect='auto')
     plt.title('Input')
     plt.subplot(1, 3, 2)
     im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)

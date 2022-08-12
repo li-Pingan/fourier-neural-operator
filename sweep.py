@@ -277,6 +277,7 @@ class FNO2d(nn.Module):
 # configs
 ################################################################
 
+print("begin")
 # Sweeping code
 sweep_config = {
     'method': 'random'
@@ -286,6 +287,7 @@ metric = {
     'goal': 'minimize'   
     }
 sweep_config['metric'] = metric
+print('made metric')
 
 
 TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
@@ -310,14 +312,16 @@ elif 'planes_channel180_minchan' in path_name:
     s1 = 32//r
     s2 = 32//r
 
+print('made some values')
+
 parameters_dict = {
     'model': {
         'value': "FNO2d"
         },
-    'file name': {
+    'file_name': {
         'value': path_name
         },
-    'python file': {
+    'python_file': {
         'value': "WandB_fourier_2d.py"
         },
     'patches': {
@@ -342,7 +346,7 @@ parameters_dict = {
         'value': 20
         },
     'learning_rate': {
-        'distribution': 'q_log_uniform',
+        'distribution': 'uniform',
         'min': 0,
         'max': 0.1
         },
@@ -368,7 +372,7 @@ parameters_dict = {
         'distribution': 'uniform',
         'min': 1,
         'max': 50
-        }
+        },
     'r': {
         'value': r
         },
@@ -379,18 +383,25 @@ parameters_dict = {
         'value': s2
         }
     }
+print('made dictionary')
 
 sweep_config['parameters'] = parameters_dict
+print('made sweep config')
 
 pprint.pprint(sweep_config)
 
 sweep_id = wandb.sweep(sweep_config, project="FNO Planes")
+print('made sweep_id')
 
 def run_model(config=None):
+    print('in run_model')
+    print("dtype(config):", dtype(config))
     with wandb.init(config=config):
         # If called by wandb.agent, as below,
         # this config will be set by Sweep Controller
         config = wandb.config
+        print("dtype(config):", dtype(config))
+        print('did the config business')
 
         TRAIN_PATH = config.TRAIN_PATH
         TEST_PATH = config.TEST_PATH
@@ -406,6 +417,7 @@ def run_model(config=None):
         r = config.r
         s1 = config.s1
         s2 = config.s2
+        print('redefined variables')
 
         ################################################################
         # load data and data normalization
@@ -437,6 +449,8 @@ def run_model(config=None):
         test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
         n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
 
+        print("loaded and normalized data")
+
         ################################################################
         # training and evaluation
         ################################################################
@@ -450,6 +464,8 @@ def run_model(config=None):
         output_path = '/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/'
         output_path += path_name
         output_path += '_preds_wandb.mat'
+
+        print('before training')
 
         myloss = LpLoss(size_average=False)
         y_normalizer.cuda()
@@ -479,6 +495,8 @@ def run_model(config=None):
 
             scheduler.step()
 
+            print('trained')
+
             model.eval()
             test_l2 = 0.0
             with torch.no_grad():
@@ -506,13 +524,12 @@ def run_model(config=None):
                 # scipy.io.savemat('/central/groups/tensorlab/khassibi/fourier_neural_operator/outputs/planes_preds_wandb.mat', mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
                 scipy.io.savemat(output_path, mdict={'x': x.cpu().numpy(), 'pred': out.cpu().numpy(), 'y': y.cpu().numpy(),})
             
+            print('test error')
+            
             ################################################################
             # making the plots
             ################################################################
-            dat = scipy.io.loadmat(output_path)
-
-            # Fixing the shape of mat
-            dat['x'] = dat['x'].reshape(dat['x'].shape[0], dat['x'].shape[1], dat['x'].shape[2])
+            mat = scipy.io.loadmat(output_path)
 
             # Plots
             for index in [0, 5, 10, 19]:
@@ -520,7 +537,7 @@ def run_model(config=None):
                 vmax = dat['y'][index, :, :].max()
                 fig, axes = plt.subplots(nrows=1, ncols=4)
                 plt.subplot(1, 3, 1)
-                im1 = plt.imshow(dat['x'][index, :, :], cmap='jet', aspect='auto')
+                im1 = plt.imshow(dat['x'][index, :, :, 0], cmap='jet', aspect='auto')
                 plt.title('Input')
                 plt.subplot(1, 3, 2)
                 im2 = plt.imshow(dat['y'][index, :, :], cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
@@ -532,7 +549,9 @@ def run_model(config=None):
                 fig.colorbar(im3, cax=cbar_ax)
 
                 wandb.log({f"chart_{index}": plt})
+            print('plotted')
 
-wandb.agent(sweep_id, run_model, count=20)
+print('about to run agent')
+wandb.agent(sweep_id, run_model, count=1)
 
 wandb.finish()

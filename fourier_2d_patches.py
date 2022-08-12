@@ -422,7 +422,7 @@ for ep in range(epochs):
 ################################################################
 # making the plots
 ################################################################
-mat = scipy.io.loadmat(output_path)
+dat = scipy.io.loadmat(output_path)
 
 # Plots
 for index in [0, 5, 10, 19]:

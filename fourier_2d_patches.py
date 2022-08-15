@@ -298,6 +298,7 @@ wandb.init(
         "model": "FNO2d",
         "file name": path_name,
         'python file': 'fourier_2d_patches.py',
+        "has_prev_press": False,
         "patches": True,
         "permute": True,
         "TRAIN_PATH": TRAIN_PATH,

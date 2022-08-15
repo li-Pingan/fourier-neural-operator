@@ -307,6 +307,7 @@ wandb.init(
         "model": "UNet",
         "file name": path_name,
         'python file': 'UNet.py',
+        "has_prev_press": False,
         "patches": False,
         "permute": True,
         "TRAIN_PATH": TRAIN_PATH,

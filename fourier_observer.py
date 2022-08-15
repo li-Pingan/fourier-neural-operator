@@ -183,8 +183,9 @@ wandb.init(
     project="FNO Planes",
     config={
         "model": "FNO2d observer",
-        "file name": path_name,
-        'python file': 'fourier_observer.py',
+        "file_name": path_name,
+        'python_file': 'fourier_observer.py',
+        "has_prev_press": True,
         "patches": False,
         "permute": True,
         "TRAIN_PATH": TRAIN_PATH,

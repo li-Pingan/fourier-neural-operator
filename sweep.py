@@ -324,6 +324,9 @@ parameters_dict = {
     'python_file': {
         'value': "WandB_fourier_2d.py"
         },
+    'has_prev_press: {
+        'value': False
+        },
     'patches': {
         'value': False
         },

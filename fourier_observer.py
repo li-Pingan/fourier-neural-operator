@@ -171,7 +171,7 @@ gamma = 0.5
 modes = 12
 width = 32
 
-r = 1
+r = 8
 if path_name == 'planes':
     s1 = 768//r
     s2 = 288//r
@@ -207,7 +207,7 @@ wandb.init(
 ################################################################
 # load data and data normalization
 ################################################################
-idx = torch.randperm(ntrain + ntest)
+idx = torch.arange(ntrain + ntest)
 training_idx = idx[:ntrain]
 testing_idx = idx[-ntest:]
 

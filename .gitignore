@@ -12,3 +12,7 @@ fourier_observer_minchan2.py
 fourier_2d_hype_tune.py
 fourier_2d_quicker_tune.py
 test_sweep.py
+minchan2_tune.py
+min_tune.py
+joint_probability.py
+probability.py

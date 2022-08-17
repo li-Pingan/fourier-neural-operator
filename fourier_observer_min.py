@@ -107,7 +107,9 @@ class FNO2d(nn.Module):
         grid = self.get_grid(x.shape, x.device)
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
+        # print("x.shape:", x.shape)
         x = x.permute(0, 3, 1, 2)
+        # print("x.shape:", x.shape)
         x = F.pad(x, [0,self.padding, 0,self.padding])
 
         x1 = self.conv0(x)
@@ -130,7 +132,9 @@ class FNO2d(nn.Module):
         x = x1 + x2
 
         x = x[..., :-self.padding, :-self.padding]
+        # print("x.shape:", x.shape)
         x = x.permute(0, 2, 3, 1)
+        # print("x.shape:", x.shape)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
@@ -147,22 +151,17 @@ class FNO2d(nn.Module):
 ################################################################
 # configs
 ################################################################
-TRAIN_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
-TEST_PATH = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes.mat'
-path_name = TRAIN_PATH[64:-4]
+TRAIN_PATH_1 = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
+TEST_PATH_1 = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan.mat'
+TRAIN_PATH_2 = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
+TEST_PATH_2 = '/central/groups/tensorlab/khassibi/fourier_neural_operator/data/planes_channel180_minchan2.mat'
+path_name = 'min'
 
 batch_size = 20
 learning_rate = 1e-3
 
-if path_name == 'planes':
-    ntrain = 3000 - batch_size + 1
-    ntest = 1000 - batch_size + 1
-elif path_name == 'planes_channel180_minchan': 
-    ntrain = 7500 - batch_size + 1
-    ntest = 2500 - batch_size + 1
-elif path_name == 'planes_channel180_minchan2': 
-    ntrain = 9220 - batch_size + 1
-    ntest = 4620 - batch_size + 1
+ntrain = 15900 - batch_size + 1
+ntest = 7941
 
 epochs = 100
 step_size = 100
@@ -171,13 +170,9 @@ gamma = 0.5
 modes = 12
 width = 32
 
-r = 8
-if path_name == 'planes':
-    s1 = 768//r
-    s2 = 288//r
-elif 'planes_channel180_minchan' in path_name: 
-    s1 = 32//r
-    s2 = 32//r    
+r = 1
+s1 = 32//r
+s2 = 32//r    
 
 wandb.init(
     project="FNO Planes",
@@ -187,9 +182,11 @@ wandb.init(
         'python_file': 'fourier_observer.py',
         "has_prev_press": True,
         "patches": False,
-        "permute": True,
-        "TRAIN_PATH": TRAIN_PATH,
-        "TEST_PATH": TEST_PATH,
+        "permute": False,
+        "TRAIN_PATH_1": TRAIN_PATH_1,
+        "TEST_PATH_1": TEST_PATH_1,
+        "TRAIN_PATH_2": TRAIN_PATH_2,
+        "TEST_PATH_2": TEST_PATH_2,
         "ntrain": ntrain,
         "ntest": ntest,
         "batch_size": batch_size,
@@ -212,27 +209,72 @@ idx = torch.arange(ntrain + ntest)
 training_idx = idx[:ntrain]
 testing_idx = idx[-ntest:]
 
-reader = MatReader(TRAIN_PATH)
-x_train = reader.read_field('P_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
-x2_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
-y_train = reader.read_field('V_plane').permute(2,0,1)[training_idx][:,::r,::r][:,:s1,:s2]
+reader1 = MatReader(TRAIN_PATH_1)
+reader2 = MatReader(TRAIN_PATH_2)
+
+p1_train = reader1.read_field('P_plane').permute(2,0,1)
+print("p1_train.shape:", p1_train.shape)
+p2_train = reader2.read_field('P_plane').permute(2,0,1)
+print("p2_train.shape:", p2_train.shape)
+pressure_train = torch.cat((p1_train, p2_train))
+print("pressure_train.shape:", pressure_train.shape)
+
+v1_train = reader1.read_field('V_plane').permute(2,0,1)
+v2_train = reader2.read_field('V_plane').permute(2,0,1)
+velocity_train = torch.cat((v1_train, v2_train))
+
+x_train = pressure_train[training_idx]
+x_train = x_train[:,::r,::r][:,:s1,:s2]
+x2_train = velocity_train[training_idx][:,::r,::r][:,:s1,:s2]
+y_train = velocity_train[training_idx][:,::r,::r][:,:s1,:s2]
+
+print("s1:", s1)
+print("s2:", s2)
+print("x_train.shape:", x_train.shape)
+print("x2_train.shape:", x2_train.shape)
 
 x_train = x_train[1:]
 y_train = y_train[1:]
 x2_train = x2_train[:-1]
 
+# x_train = torch.stack((x_train, x2_train))
+# x_train = torch.cat((x_train, x2_train))
 x_train = torch.stack([x_train, x2_train]).permute(1,2,3,0)
 
-reader.load_file(TEST_PATH)
-x_test = reader.read_field('P_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
-x2_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
-y_test = reader.read_field('V_plane').permute(2,0,1)[testing_idx][:,::r,::r][:,:s1,:s2]
+print("x_train.shape:", x_train.shape)
+
+reader1.load_file(TEST_PATH_1)
+reader2.load_file(TEST_PATH_2)
+
+p1_test = reader1.read_field('P_plane').permute(2,0,1)
+print("p1_test.shape:", p1_test.shape)
+p2_test = reader2.read_field('P_plane').permute(2,0,1)
+print("p2_test.shape:", p2_test.shape)
+pressure_test = torch.cat((p1_test, p2_test))
+print("pressure_test.shape:", pressure_test.shape)
+
+v1_test = reader1.read_field('V_plane').permute(2,0,1)
+v2_test = reader2.read_field('V_plane').permute(2,0,1)
+velocity_test = torch.cat((v1_test, v2_test))
+
+x_test = pressure_test[testing_idx][:,::r,::r][:,:s1,:s2]
+x2_test = velocity_test[testing_idx][:,::r,::r][:,:s1,:s2]
+y_test = velocity_test[testing_idx][:,::r,::r][:,:s1,:s2]
+
+print("s1:", s1)
+print("s2:", s2)
+print("x_test.shape:", x_test.shape)
+print("x2_test.shape:", x2_test.shape)
 
 x_test = x_test[1:]
 y_test = y_test[1:]
 x2_test = x2_test[:-1]
 
+# x_test = torch.stack((x_test, x2_test))
+# x_test = torch.cat((x_test, x2_test))
 x_test = torch.stack([x_test, x2_test]).permute(1,2,3,0)
+
+print("x_test.shape:", x_test.shape)
 
 x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
@@ -275,6 +317,8 @@ for ep in range(epochs):
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
 
+        # print("out.shape:", out.shape)
+        # print("y.shape:", y.shape)
         loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
         loss.backward()
 

@@ -305,8 +305,8 @@ wandb.init(
     project="FNO Planes",
     config={
         "model": "FNO2d",
-        "file name": path_name,
-        'python file': 'fourier_2d_arange.py',
+        "file_name": path_name,
+        'python_file': 'fourier_2d_arange.py',
         "has_prev_press": False,
         "patches": False,
         "permute": False,

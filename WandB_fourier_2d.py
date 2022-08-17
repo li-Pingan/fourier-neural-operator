@@ -284,7 +284,7 @@ elif path_name == 'planes_channel180_minchan2':
     ntest = 4620
 
 batch_size = 20
-learning_rate = 0.1
+learning_rate = 1e-3
 
 epochs = 100
 step_size = 100
@@ -305,8 +305,8 @@ wandb.init(
     project="FNO Planes",
     config={
         "model": "FNO2d",
-        "file name": path_name,
-        'python file': 'WandB_fourier_2d.py',
+        "file_name": path_name,
+        'python_file': 'WandB_fourier_2d.py',
         "has_prev_press": False,
         "patches": False,
         "permute": True,
@@ -382,7 +382,6 @@ for ep in range(epochs):
         x, y = x.cuda(), y.cuda()
 
         optimizer.zero_grad()
-        print("model(x).shape:", model(x).shape)
         out = model(x).reshape(batch_size, s1, s2)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)

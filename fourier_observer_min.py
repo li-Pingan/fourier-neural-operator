@@ -179,7 +179,7 @@ wandb.init(
     config={
         "model": "FNO2d observer",
         "file_name": path_name,
-        'python_file': 'fourier_observer.py',
+        'python_file': 'fourier_2d_observer.py',
         "has_prev_press": True,
         "patches": False,
         "permute": False,

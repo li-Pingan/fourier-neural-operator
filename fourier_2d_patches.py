@@ -348,8 +348,8 @@ y_train = y_normalizer.encode(y_train)
 x_train = x_train.reshape(ntrain * r1 * r2, s1, s2, 1)
 x_test = x_test.reshape(ntest * r1 * r2, s1, s2, 1)
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, drop_last=True)
 n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
 
 ################################################################

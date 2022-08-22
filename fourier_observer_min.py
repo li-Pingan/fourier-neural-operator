@@ -156,8 +156,8 @@ path_name = 'min'
 batch_size = 20
 learning_rate = 1e-3
 
-ntrain = 15900 - batch_size + 1
-ntest = 7941
+ntrain = 15894
+ntest = 7947
 
 epochs = 100
 step_size = 100
@@ -258,8 +258,8 @@ y_train = y_normalizer.encode(y_train)
 x_train = x_train.reshape(ntrain - 1, s1,s2, 2)
 x_test = x_test.reshape(ntest - 1, s1,s2, 2)
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, drop_last=True)
 n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
 
 ################################################################

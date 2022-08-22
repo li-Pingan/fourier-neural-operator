@@ -278,10 +278,10 @@ if path_name == 'planes':
     ntest = 1000
 elif path_name == 'planes_channel180_minchan': 
     ntrain = 7500
-    ntest = 2500
+    ntest = 2501
 elif path_name == 'planes_channel180_minchan2': 
-    ntrain = 9220
-    ntest = 4620
+    ntrain = 9227
+    ntest = 4613
 
 batch_size = 20
 learning_rate = 0.001
@@ -353,8 +353,8 @@ y_train = y_normalizer.encode(y_train)
 x_train = x_train.reshape(ntrain,s1,s2,1)
 x_test = x_test.reshape(ntest,s1,s2,1)
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, drop_last=True)
 n_steps_per_epoch = math.ceil(len(train_loader.dataset) / batch_size)
 
 ################################################################

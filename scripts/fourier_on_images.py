@@ -31,12 +31,12 @@ def compl_mul2d(a, b):
 
 
 class SpectralConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, mode):
+    def __init__(self, in_channels, out_channels, modes):
         super(SpectralConv2d, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.modes1 = mode #Number of Fourier modes to multiply, at most floor(N/2) + 1
-        self.modes2 = mode
+        self.modes1 = modes #Number of Fourier modes to multiply, at most floor(N/2) + 1
+        self.modes2 = modes
 
         self.scale = (1 / (in_channels * out_channels))
         self.weights1 = nn.Parameter(self.scale * torch.rand(in_channels, out_channels, self.modes1, self.modes2, 2))
